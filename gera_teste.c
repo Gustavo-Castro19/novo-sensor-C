@@ -103,7 +103,7 @@ int main(int argc, char *argv[]) {
 
   printf("Gerando dados para %d sensores...\n", num_sensores);
 
-  for (int i = 0; i < 2000; i++) {
+  for (int i = 0; i < 8000; i++) {
     int s=rand()%4;
     time_t t = gerar_timestamp_aleatorio(t_ini, t_fim);
     fprintf(fd, "%ld %s ", t, sensores[s]);
