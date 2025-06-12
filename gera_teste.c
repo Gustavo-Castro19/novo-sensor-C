@@ -26,7 +26,7 @@ int main(int argc, char *argv[]) {
   }
 
   int sensor_args = argc - 1 - date_args; 
-  printf("Total args: %d, Date args: %d, Sensor args: %d\n", argc, date_args, sensor_args);
+  //printf("Total args: %d, Date args: %d, Sensor args: %d\n", argc, date_args, sensor_args);
 
   if (sensor_args % 2 != 0) {
     fprintf(stderr, "Número de argumentos de sensores deve ser par (nome e tipo para cada sensor).\n");
@@ -34,7 +34,7 @@ int main(int argc, char *argv[]) {
   }
 
   int num_sensores = sensor_args / 2;
-  printf("Número de sensores detectados: %d\n", num_sensores);
+  //printf("Número de sensores detectados: %d\n", num_sensores);
 
   if (num_sensores > MAX_SENSORES) {
     fprintf(stderr, "Máximo de %d sensores permitidos. Você informou %d sensores.\n", MAX_SENSORES, num_sensores);
@@ -49,12 +49,12 @@ int main(int argc, char *argv[]) {
   srand(time(NULL));
   int datas_ini[NUM_CAMPOS_DATA], datas_fim[NUM_CAMPOS_DATA];
 
-  printf("Validando data inicial...\n");
+  //printf("Validando data inicial...\n");
   if (!transforma_data(argv[1], argv[2], argv[3], argv[4], argv[5], argv[6], datas_ini)) {
     return 1;
   }
 
-  printf("Validando data final...\n");
+  //printf("Validando data final...\n");
   if (!transforma_data(argv[7], argv[8], argv[9], argv[10], argv[11], argv[12], datas_fim)) {
     return 1;
   }
@@ -101,7 +101,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  printf("Gerando dados para %d sensores...\n", num_sensores);
+  //printf("Gerando dados para %d sensores...\n", num_sensores);
 
   for (int i = 0; i < 8000; i++) {
     int s=rand()%4;
@@ -120,7 +120,7 @@ int main(int argc, char *argv[]) {
     }
   }
   fclose(fd);
-  printf("Arquivo teste.txt gerado com sucesso!\n");
+  //printf("Arquivo teste.txt gerado com sucesso!\n");
   return 0;
 }
 
