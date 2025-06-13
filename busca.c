@@ -4,10 +4,10 @@
 #include <math.h>
 
 #define NUM_DATAS (6)
-#define MAX_SENS (2000)
 #define MAX_ID_LEN   (32)
 #define MAX_VALUE_LEN (32)
 #define MAX_LINE (3000)
+#define MAX_SENS (10000)
 
 
 typedef struct{
@@ -32,7 +32,7 @@ int main(int argc,char *argv[]){
   }
 
   int data[NUM_DATAS];
-  if(!transforma_data(argv[3],argv[4],argv[5],argv[6],argv[7],argv[8],data)) return 1;
+  if(!transforma_data(argv[2],argv[3],argv[4],argv[5],argv[6],argv[7],data)) return 1;
 
   time_t targ=converter_para_timestamp(data);
   
@@ -41,13 +41,15 @@ int main(int argc,char *argv[]){
     return 1;
   }
 
-  sensor_t sensors[MAX_SENS];
+  static sensor_t sensors[MAX_SENS];
   sensor_t find;
   int counter=get_sensors(argv[1],sensors,MAX_SENS);
   if(counter<0) return 1;
   find=busca_binaria(targ,sensors,counter);
-
-  printf("a leitura mais proxima de %ld foi\n",targ);
+  char tempo_str[64];
+  struct tm *tm_info = localtime(&find.timestamp);
+  strftime(tempo_str, sizeof(tempo_str), "%d/%m/%Y %H:%M:%S", tm_info);
+  printf("a leitura mais proxima de %s foi\n",tempo_str);
   printf("%ld %s %s",find.timestamp,find.id,find.value);
   return 0;
 }
