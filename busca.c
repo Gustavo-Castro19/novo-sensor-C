@@ -50,7 +50,7 @@ int main(int argc,char *argv[]){
   struct tm *tm_info = localtime(&find.timestamp);
   strftime(tempo_str, sizeof(tempo_str), "%d/%m/%Y %H:%M:%S", tm_info);
   printf("a leitura mais proxima de %s foi\n",tempo_str);
-  printf("%ld %s %s",find.timestamp,find.id,find.value);
+  printf("%ld %s %s\n",find.timestamp,find.id,find.value);
   return 0;
 }
 bool transforma_data(char *day, char *month, char *year, char *hour, char *minutes, char *second, int datas[NUM_DATAS]) {
@@ -123,14 +123,19 @@ int get_sensors(char* file, sensor_t *catching, int size) {
     }
 
     int count = 0;
-    while (count < size && fscanf(fd, "%ld %s %s", &catching[count].timestamp, catching[count].id, catching[count].value) == 3) {
-        count++;
+    while(count<size){
+    int res=fscanf(fd, "%ld %31s %31s", &catching[count].timestamp, catching[count].id, catching[count].value);
+    if (res==3) count++;
+    else if(res ==EOF){
+      break;
     }
-
-    if (count >= size && !feof(fd)) {
-        fprintf(stderr, "Aviso: arquivo excedeu limite do programa (%d). Dados podem ter sido truncados.\n", size);
+    else{
+      fprintf(stderr, "houve um erro na leitura do arquivo, verifique se o arquivo esta no formato correto <TIMESTAMP> <ID_SENSOR <VALOR>\n");
+      fprintf(stderr, "erro ao ler o arquivo programa encerrado\n");
+      fclose(fd);
+      return -1;
     }
-    
+  }
     fclose(fd);
     return count;
 }
