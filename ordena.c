@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <stdio.h> 
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
@@ -20,6 +20,7 @@ int get_sensors(FILE *fp, sensor_t *catching, char ***archive_names, int *arc_co
 void order_timestamp(sensor_t *sensor, int size);
 void catch_pos_file(char *pars, char ***pos_arc, int *arc_count, int *capacity);
 void record_archives(char **filenames, sensor_t *sensor_reads, int arc_count, int size);
+void add_unique_sensor(char *sensor_id, char ***unique_sensors, int *count, int *capacity);
 
 int main(int argc, char *argv[]) {
   if (argc != 2) {
@@ -36,6 +37,11 @@ int main(int argc, char *argv[]) {
   sensor_t sensors_list[MAX_SENS_READS];
   int sensor_capacity = INITIAL_SENSOR_CAPACITY;
   char **sensor_names = malloc(sensor_capacity * sizeof(char *));
+  if(!sensor_names){
+    fprintf(stderr,"erro ao alocar memoria");
+    fclose(fd);
+    return -1;
+  }
   int sensor_count = 0;
   int arc_count = 0;
 
@@ -62,27 +68,32 @@ int get_sensors(FILE *fp, sensor_t *catching, char ***archive_names, int *arc_co
 
     parser = strtok(line, " ");
     if (!parser) continue;
-    catching[count].timestamp = (time_t)atol(parser);
+    time_t temptime=(time_t)atol(parser);
 
     parser = strtok(NULL, " ");
     if (!parser) continue;
-    strncpy(catching[count].sens_id, parser, MAX_ID_LEN - 1);
-    catching[count].sens_id[MAX_ID_LEN - 1] = '\0';
+    char tempcharID[MAX_ID_LEN];
+    strncpy(tempcharID, parser, MAX_ID_LEN - 1);
+    tempcharID[MAX_ID_LEN-1] = '\0';
     if (strlen(parser) > MAX_ID_LEN) {
       fprintf(stderr, "erro: alguns valores de ID excedem o limite do sistema havera truncamento no arquivo final\n");
       continue;
     }
-    catch_pos_file(parser, archive_names, arc_count, capacity);
 
     parser = strtok(NULL, "\n");
     if (!parser) continue;
-    strncpy(catching[count].value, parser, MAX_VALUE_LEN - 1);
-    catching[count].value[MAX_VALUE_LEN - 1] = '\0';
+    char tempcharVal[MAX_VALUE_LEN];
+    strncpy(tempcharVal, parser, MAX_VALUE_LEN - 1);
+    tempcharVal[MAX_VALUE_LEN - 1] = '\0';
     if (strlen(parser) > MAX_VALUE_LEN) {
       fprintf(stderr, "erro: o valor de alguma linha excede o limite do sistema havera truncamento no arquivo final\n");
       continue;
     }
-
+    
+    catching[count].timestamp=temptime;
+    strcpy(catching[count].sens_id,tempcharID);
+    strcpy(catching[count].value,tempcharVal);
+    add_unique_sensor(catching[count].sens_id, archive_names, arc_count, capacity);
     count++;
   }
 
@@ -102,31 +113,34 @@ void order_timestamp(sensor_t *sensor, int size) {
   }
 }
 
-void catch_pos_file(char *pars, char ***pos_arc, int *arc_count, int *capacity) {
-  for (int i = 0; i < *arc_count; i++) {
-    if (strcmp((*pos_arc)[i], pars) == 0) return;
+
+void add_unique_sensor(char *sensor_id, char ***unique_sensors, int *count, int *capacity) {
+  for (int i = 0; i < *count; i++) {
+    if (strcmp((*unique_sensors)[i], sensor_id) == 0) {
+      return; 
+    }
   }
-  if (*arc_count >= *capacity) {
+
+  if (*count >= *capacity) {
     *capacity *= 2;
-    *pos_arc = realloc(*pos_arc, (*capacity) * sizeof(char *));
-    if (!*pos_arc) {
-      fprintf(stderr, "Erro ao realocar memoria para lista de sensores\n");
+    *unique_sensors = realloc(*unique_sensors, (*capacity) * sizeof(char *));
+    if (!*unique_sensors) {
+      perror("Erro ao realocar memoria para lista de sensores");
       exit(1);
     }
   }
-  (*pos_arc)[*arc_count] = strdup(pars);
-  (*arc_count)++;
+  (*unique_sensors)[*count] = strdup(sensor_id);
+  (*count)++;
 }
-
 void record_archives(char **filenames, sensor_t *sensor_reads, int arc_count, int size) {
   for (int i = 0; i < arc_count; i++) {
     if (filenames[i] == NULL) continue;
     char filename[256];
     snprintf(filename, sizeof(filename), "%s.txt", filenames[i]);
-    FILE *new_fd = fopen(filename, "a");
+    FILE *new_fd = fopen(filename, "w");
     if (!new_fd) {
-      perror("nao foi possivel abrir o arquivo corretamente");
-      continue;
+      perror("nao foi possivel abrir o arquivo gerado");
+      return;
     }
     for (int z = 0; z < size; z++) {
       if (strcmp(sensor_reads[z].sens_id, filenames[i]) == 0) {
