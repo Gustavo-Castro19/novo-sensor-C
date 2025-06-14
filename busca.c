@@ -4,10 +4,10 @@
 #include <math.h>
 
 #define NUM_DATAS (6)
-#define MAX_SENS (2000)
 #define MAX_ID_LEN   (32)
 #define MAX_VALUE_LEN (32)
 #define MAX_LINE (3000)
+#define MAX_SENS (10000)
 
 
 typedef struct{
@@ -32,7 +32,7 @@ int main(int argc,char *argv[]){
   }
 
   int data[NUM_DATAS];
-  if(!transforma_data(argv[3],argv[4],argv[5],argv[6],argv[7],argv[8],data)) return 1;
+  if(!transforma_data(argv[2],argv[3],argv[4],argv[5],argv[6],argv[7],data)) return 1;
 
   time_t targ=converter_para_timestamp(data);
   
@@ -41,14 +41,16 @@ int main(int argc,char *argv[]){
     return 1;
   }
 
-  sensor_t sensors[MAX_SENS];
+  static sensor_t sensors[MAX_SENS];
   sensor_t find;
   int counter=get_sensors(argv[1],sensors,MAX_SENS);
   if(counter<0) return 1;
   find=busca_binaria(targ,sensors,counter);
-
-  printf("a leitura mais proxima de %ld foi\n",targ);
-  printf("%ld %s %s",find.timestamp,find.id,find.value);
+  char tempo_str[64];
+  struct tm *tm_info = localtime(&find.timestamp);
+  strftime(tempo_str, sizeof(tempo_str), "%d/%m/%Y %H:%M:%S", tm_info);
+  printf("a leitura mais proxima de %s foi\n",tempo_str);
+  printf("%ld %s %s\n",find.timestamp,find.id,find.value);
   return 0;
 }
 bool transforma_data(char *day, char *month, char *year, char *hour, char *minutes, char *second, int datas[NUM_DATAS]) {
@@ -121,14 +123,19 @@ int get_sensors(char* file, sensor_t *catching, int size) {
     }
 
     int count = 0;
-    while (count < size && fscanf(fd, "%ld %s %s", &catching[count].timestamp, catching[count].id, catching[count].value) == 3) {
-        count++;
+    while(count<size){
+    int res=fscanf(fd, "%ld %31s %31s", &catching[count].timestamp, catching[count].id, catching[count].value);
+    if (res==3) count++;
+    else if(res ==EOF){
+      break;
     }
-
-    if (count >= size && !feof(fd)) {
-        fprintf(stderr, "Aviso: arquivo excedeu limite do programa (%d). Dados podem ter sido truncados.\n", size);
+    else{
+      fprintf(stderr, "houve um erro na leitura do arquivo, verifique se o arquivo esta no formato correto <TIMESTAMP> <ID_SENSOR <VALOR>\n");
+      fprintf(stderr, "erro ao ler o arquivo programa encerrado\n");
+      fclose(fd);
+      return -1;
     }
-    
+  }
     fclose(fd);
     return count;
 }

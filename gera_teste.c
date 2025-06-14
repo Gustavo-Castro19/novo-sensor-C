@@ -6,7 +6,6 @@
 
 #define TAM_STRING 16
 #define NUM_CAMPOS_DATA 6
-#define MAX_SENSORES 4 
 
 int gera_int();
 double gera_double();
@@ -36,10 +35,6 @@ int main(int argc, char *argv[]) {
   int num_sensores = sensor_args / 2;
   //printf("Número de sensores detectados: %d\n", num_sensores);
 
-  if (num_sensores > MAX_SENSORES) {
-    fprintf(stderr, "Máximo de %d sensores permitidos. Você informou %d sensores.\n", MAX_SENSORES, num_sensores);
-    return 1;
-  }
 
   if (num_sensores == 0) {
     fprintf(stderr, "Pelo menos um sensor deve ser especificado.\n");
@@ -76,8 +71,8 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  char *sensores[MAX_SENSORES];
-  char *tipos[MAX_SENSORES];
+  char **sensores=(char**)malloc(num_sensores*sizeof(char*));
+  char **tipos=(char**)malloc(num_sensores*sizeof(char*));
 
   for(int i = 0; i < num_sensores; i++) {
     int sensor_start_idx = 1 + date_args; 
@@ -104,7 +99,7 @@ int main(int argc, char *argv[]) {
   //printf("Gerando dados para %d sensores...\n", num_sensores);
 
   for (int i = 0; i < 8000; i++) {
-    int s=rand()%4;
+    int s=rand()%num_sensores;
     time_t t = gerar_timestamp_aleatorio(t_ini, t_fim);
     fprintf(fd, "%ld %s ", t, sensores[s]);
     if (strcmp(tipos[s], "int") == 0) {
@@ -121,6 +116,8 @@ int main(int argc, char *argv[]) {
   }
   fclose(fd);
   //printf("Arquivo teste.txt gerado com sucesso!\n");
+  free(tipos);
+  free(sensores);
   return 0;
 }
 
@@ -137,7 +134,7 @@ bool gera_booleano() {
 }
 
 void gera_codigo(char *dest) {
-  const char charset[] = "abcdefghiklmnopqrstuvwxyz";
+  const char charset[] = "abcdefghiklmnopqrstuvwxyzABCDEFGHIJKLMNEOPQRSTUVWXYZ123456789";
   for (int i = 0; i < TAM_STRING - 1; i++) {
     dest[i] = charset[rand() % (sizeof(charset) - 1)];
   }
