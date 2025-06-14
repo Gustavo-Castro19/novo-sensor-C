@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
   int date_args = 2 * NUM_CAMPOS_DATA; 
 
   if (argc < date_args + 1 + 2) { 
-    fprintf(stderr, "Argumentos insuficientes. Mínimo necessário: %d argumentos totais.\n", date_args + 3);
+    fprintf(stderr, "Argumentos insuficientes. Minimo necessário: %d argumentos totais.\n", date_args + 3);
     fprintf(stderr, "Uso: %s <dia_ini> <mes_ini> <ano_ini> <hora_ini> <min_ini> <seg_ini> <dia_fim> <mes_fim> <ano_fim> <hora_fim> <min_fim> <seg_fim> <sensor1> <tipo1> [<sensor2> <tipo2> ...]\n", argv[0]);
     return 1;
   }
@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {
   //printf("Total args: %d, Date args: %d, Sensor args: %d\n", argc, date_args, sensor_args);
 
   if (sensor_args % 2 != 0) {
-    fprintf(stderr, "Número de argumentos de sensores deve ser par (nome e tipo para cada sensor).\n");
+    fprintf(stderr, "Numero de argumentos de sensores deve ser par (nome e tipo para cada sensor).\n");
     return 1;
   }
 
@@ -56,18 +56,18 @@ int main(int argc, char *argv[]) {
 
   time_t t_ini = converter_para_timestamp(datas_ini);
   if (t_ini == (time_t)-1) {
-    fprintf(stderr, "Data/hora inicial inválida. Corrija e tente novamente.\n");
+    fprintf(stderr, "Data/hora inicial invalida. Corrija e tente novamente.\n");
     return 1;
   }
 
   time_t t_fim = converter_para_timestamp(datas_fim);
   if (t_fim == (time_t)-1) {
-    fprintf(stderr, "Data/hora final inválida. Corrija e tente novamente.\n");
+    fprintf(stderr, "Data/hora final invalida. Corrija e tente novamente.\n");
     return 1;
   }
 
   if (t_ini >= t_fim) {
-    fprintf(stderr, "A data/hora inicial deve ser anterior à final.\n");
+    fprintf(stderr, "A data/hora inicial deve ser anterior a final.\n");
     return 1;
   }
 
@@ -84,8 +84,8 @@ int main(int argc, char *argv[]) {
       strcmp(tipos[i], "double") != 0 && 
       strcmp(tipos[i], "bool") != 0 && 
       strcmp(tipos[i], "string") != 0) {
-      fprintf(stderr, "Tipo de dado inválido para sensor %s: %s\n", sensores[i], tipos[i]);
-      fprintf(stderr, "Tipos válidos: int, double, bool, string\n");
+      fprintf(stderr, "Tipo de dado invalido para sensor %s: %s\n", sensores[i], tipos[i]);
+      fprintf(stderr, "Tipos validos: int, double, bool, string\n");
       return 1;
     }
   }
@@ -164,7 +164,7 @@ bool transforma_data(char *day, char *month, char *year, char *hour, char *minut
 
 
   if (!IsValid) {
-    fprintf(stderr, "Houve algum erro na formatação da data. Lembre-se que o formato é DD MM AAAA HH MM SS\n");
+    fprintf(stderr, "Houve algum erro na formatacao da data. Lembre-se que o formato e DD MM AAAA HH MM SS\n");
     fprintf(stderr, "Data informada: %02d/%02d/%04d %02d:%02d:%02d\n", 
             datas[0], datas[1], datas[2], datas[3], datas[4], datas[5]);
   }

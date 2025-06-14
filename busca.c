@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
+#include <stdbool.h>
 
 #define NUM_DATAS (6)
 #define MAX_ID_LEN   (32)
@@ -37,7 +38,7 @@ int main(int argc,char *argv[]){
   time_t targ=converter_para_timestamp(data);
   
   if (targ == (time_t)-1) {
-    fprintf(stderr, "Data/hora final inválida. Corrija e tente novamente.\n");
+    fprintf(stderr, "Data/hora final invalida. Corrija e tente novamente.\n");
     return 1;
   }
 
@@ -70,7 +71,7 @@ bool transforma_data(char *day, char *month, char *year, char *hour, char *minut
 
 
   if (!IsValid) {
-    fprintf(stderr, "Houve algum erro na formatação da data. Lembre-se que o formato é DD MM AAAA HH MM SS\n");
+    fprintf(stderr, "Houve algum erro na formatacao da data. Lembre-se que o formato e DD MM AAAA HH MM SS\n");
     fprintf(stderr, "Data informada: %02d/%02d/%04d %02d:%02d:%02d\n", 
             datas[0], datas[1], datas[2], datas[3], datas[4], datas[5]);
   }
