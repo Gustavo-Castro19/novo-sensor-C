@@ -16,10 +16,16 @@ typedef struct {
   char value[MAX_VALUE_LEN];
 } sensor_t;
 
-int get_sensors(FILE *fp, sensor_t *readings, char ***archive_names, int *arc_count, int *capacity);
+typedef struct {
+  char **names;
+  int count;
+  int capacity;
+} sensor_names_t;
+
+int get_sensors(FILE *fp, sensor_t *readings, sensor_names_t *archives);
 void order_timestamp(sensor_t *sensor, int size);
-void record_archives(char **filenames, sensor_t *sensor_reads, int arc_count, int size);
-void add_unique_sensor(char *sensor_id, char ***unique_sensors, int *count, int *capacity);
+void record_archives(sensor_names_t *archives, sensor_t *sensor_reads, int size);
+void add_unique_sensor(char *sensor_id, sensor_names_t *archives);
 
 int main(int argc, char *argv[]) {
   if (argc != 2) {
@@ -34,82 +40,74 @@ int main(int argc, char *argv[]) {
   }
 
   sensor_t sensors_list[MAX_SENS_READS];
-  int sensor_capacity = INITIAL_SENSOR_CAPACITY;
-  char **sensor_names = malloc(sensor_capacity * sizeof(char *));
-  if(!sensor_names){
-    fprintf(stderr,"erro ao alocar memoria");
-    free(sensor_names);
+  sensor_names_t sensor_names = {
+    .names = malloc(INITIAL_SENSOR_CAPACITY * sizeof(char *)),
+    .count = 0,
+    .capacity = INITIAL_SENSOR_CAPACITY
+  };
+
+  if (!sensor_names.names) {
+    fprintf(stderr, "erro ao alocar memoria");
     fclose(fd);
     return -1;
   }
-  int sensor_count = 0;
-  int arc_count = 0;
 
-  sensor_count = get_sensors(fd, sensors_list, &sensor_names, &arc_count, &sensor_capacity);
+  int sensor_count = get_sensors(fd, sensors_list, &sensor_names);
 
   order_timestamp(sensors_list, sensor_count);
-  record_archives(sensor_names, sensors_list, arc_count, sensor_count);
+  record_archives(&sensor_names, sensors_list, sensor_count);
 
-  for (int i = 0; i < arc_count; i++) {
-    free(sensor_names[i]);
+  for (int i = 0; i < sensor_names.count; i++) {
+    free(sensor_names.names[i]);
   }
-  free(sensor_names);
+  free(sensor_names.names);
   fclose(fd);
   return 0;
 }
 
-int get_sensors(FILE *fp, sensor_t *readings, char ***archive_names, int *arc_count, int *capacity) {
+int get_sensors(FILE *fp, sensor_t *readings, sensor_names_t *archives) {
   static char line[MAX_LINE];
   char *parser;
-  int count = 0,lcount=0;
+  int count = 0, lcount = 0;
 
   while (fgets(line, sizeof(line), fp)) {
     ++lcount;
-    if (count >= MAX_SENS_READS){
-    fprintf(stderr,"o programa excedeu seu limite de %d, havera truncamento nos arquivos gerados\n",MAX_SENS_READS);
-    break;
+    if (count >= MAX_SENS_READS) {
+      fprintf(stderr, "o programa excedeu seu limite de %d, havera truncamento nos arquivos gerados\n", MAX_SENS_READS);
+      break;
     }
 
     parser = strtok(line, " ");
-    if (!parser){
-      fprintf(stderr, "a linha %d \n%s\n nao contem um time timestamp valido, houve truncamento",lcount,line);
+    if (!parser) {
+      fprintf(stderr, "a linha %d \n%s\n nao contem um timestamp valido, houve truncamento", lcount, line);
       continue;
     }
-    time_t temptime=(time_t)atol(parser);
+    time_t temptime = (time_t)atol(parser);
 
     parser = strtok(NULL, " ");
     if (!parser) {
-      fprintf(stderr, "a linha %d \n%s\n\r nao contem um ID valido, houve truncamento\n",lcount,line);
-      continue;
-    };
-    char tempcharID[MAX_ID_LEN];
-    strncpy(tempcharID, parser, MAX_ID_LEN - 1);
-    tempcharID[MAX_ID_LEN-1] = '\0';
-    if (strlen(parser) >= MAX_ID_LEN) {
-      fprintf(stderr, "erro: o ID da linha %d \n%s\n\r excede o limite do sistema havera truncamento no arquivo final\n",lcount,line);
+      fprintf(stderr, "a linha %d \n%s\n nao contem um ID valido, houve truncamento\n", lcount, line);
       continue;
     }
+    char tempcharID[MAX_ID_LEN];
+    strncpy(tempcharID, parser, MAX_ID_LEN - 1);
+    tempcharID[MAX_ID_LEN - 1] = '\0';
 
     parser = strtok(NULL, "\n");
     if (!parser) {
-    fprintf(stderr, "a linha %d \n%s\n\r nao contem um valor valido\n ",lcount,line);
-    continue;
+      fprintf(stderr, "a linha %d \n%s\n nao contem um valor valido\n", lcount, line);
+      continue;
     }
     char tempcharVal[MAX_VALUE_LEN];
     strncpy(tempcharVal, parser, MAX_VALUE_LEN - 1);
     tempcharVal[MAX_VALUE_LEN - 1] = '\0';
-    if (strlen(parser) >= MAX_VALUE_LEN) {
-      fprintf(stderr, "erro: o valor da linha %d \n%s\n excede o limite do sistema havera truncamento no arquivo final\n",lcount,line);
-      continue;
-    }
-    
-    readings[count].timestamp=temptime;
-    strcpy(readings[count].sens_id,tempcharID);
-    strcpy(readings[count].value,tempcharVal);
-    add_unique_sensor(readings[count].sens_id, archive_names, arc_count, capacity);
+
+    readings[count].timestamp = temptime;
+    strcpy(readings[count].sens_id, tempcharID);
+    strcpy(readings[count].value, tempcharVal);
+    add_unique_sensor(readings[count].sens_id, archives);
     count++;
   }
-
   return count;
 }
 
@@ -126,37 +124,35 @@ void order_timestamp(sensor_t *sensor, int size) {
   }
 }
 
-
-void add_unique_sensor(char *sensor_id, char ***unique_sensors, int *count, int *capacity) {
-  for (int i = 0; i < *count; i++) {
-    if (strcmp((*unique_sensors)[i], sensor_id) == 0) {
-      return; 
-    }
+void add_unique_sensor(char *sensor_id, sensor_names_t *archives) {
+  for (int i = 0; i < archives->count; i++) {
+    if (strcmp(archives->names[i], sensor_id) == 0) return;
   }
 
-  if (*count >= *capacity) {
-    *capacity *= 2;
-    *unique_sensors = realloc(*unique_sensors, (*capacity) * sizeof(char *));
-    if (!*unique_sensors) {
+  if (archives->count >= archives->capacity) {
+    archives->capacity *= 2;
+    archives->names = realloc(archives->names, archives->capacity * sizeof(char *));
+    if (!archives->names) {
       perror("Erro ao realocar memoria para lista de sensores");
       exit(EXIT_FAILURE);
     }
   }
-  (*unique_sensors)[*count] = strdup(sensor_id);
-  (*count)++;
+
+  archives->names[archives->count++] = strdup(sensor_id);
 }
-void record_archives(char **filenames, sensor_t *sensor_reads, int arc_count, int size) {
-  for (int i = 0; i < arc_count; i++) {
-    if (filenames[i] == NULL) continue;
+
+void record_archives(sensor_names_t *archives, sensor_t *sensor_reads, int size) {
+  for (int i = 0; i < archives->count; i++) {
+    if (!archives->names[i]) continue;
     char filename[256];
-    snprintf(filename, sizeof(filename), "%s.txt", filenames[i]);
+    snprintf(filename, sizeof(filename), "%s.txt", archives->names[i]);
     FILE *new_fd = fopen(filename, "w");
     if (!new_fd) {
       perror("nao foi possivel abrir o arquivo gerado");
-      return;
+      continue;
     }
     for (int z = 0; z < size; z++) {
-      if (strcmp(sensor_reads[z].sens_id, filenames[i]) == 0) {
+      if (strcmp(sensor_reads[z].sens_id, archives->names[i]) == 0) {
         fprintf(new_fd, "%ld %s %s\n", sensor_reads[z].timestamp, sensor_reads[z].sens_id, sensor_reads[z].value);
       }
     }
