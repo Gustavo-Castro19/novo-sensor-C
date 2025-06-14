@@ -16,9 +16,8 @@ typedef struct {
   char value[MAX_VALUE_LEN];
 } sensor_t;
 
-int get_sensors(FILE *fp, sensor_t *catching, char ***archive_names, int *arc_count, int *capacity);
+int get_sensors(FILE *fp, sensor_t *readings, char ***archive_names, int *arc_count, int *capacity);
 void order_timestamp(sensor_t *sensor, int size);
-void catch_pos_file(char *pars, char ***pos_arc, int *arc_count, int *capacity);
 void record_archives(char **filenames, sensor_t *sensor_reads, int arc_count, int size);
 void add_unique_sensor(char *sensor_id, char ***unique_sensors, int *count, int *capacity);
 
@@ -39,6 +38,7 @@ int main(int argc, char *argv[]) {
   char **sensor_names = malloc(sensor_capacity * sizeof(char *));
   if(!sensor_names){
     fprintf(stderr,"erro ao alocar memoria");
+    free(sensor_names);
     fclose(fd);
     return -1;
   }
@@ -58,42 +58,55 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
-int get_sensors(FILE *fp, sensor_t *catching, char ***archive_names, int *arc_count, int *capacity) {
+int get_sensors(FILE *fp, sensor_t *readings, char ***archive_names, int *arc_count, int *capacity) {
   static char line[MAX_LINE];
   char *parser;
-  int count = 0;
+  int count = 0,lcount=0;
 
   while (fgets(line, sizeof(line), fp)) {
-    if (count >= MAX_SENS_READS) break;
+    ++lcount;
+    if (count >= MAX_SENS_READS){
+    fprintf(stderr,"o programa excedeu seu limite de %d, havera truncamento nos arquivos gerados\n",MAX_SENS_READS);
+    break;
+    }
 
     parser = strtok(line, " ");
-    if (!parser) continue;
+    if (!parser){
+      fprintf(stderr, "a linha %d \n%s\n nao contem um time timestamp valido, houve truncamento",lcount,line);
+      continue;
+    }
     time_t temptime=(time_t)atol(parser);
 
     parser = strtok(NULL, " ");
-    if (!parser) continue;
+    if (!parser) {
+      fprintf(stderr, "a linha %d \n%s\n\r nao contem um ID valido, houve truncamento\n",lcount,line);
+      continue;
+    };
     char tempcharID[MAX_ID_LEN];
     strncpy(tempcharID, parser, MAX_ID_LEN - 1);
     tempcharID[MAX_ID_LEN-1] = '\0';
-    if (strlen(parser) > MAX_ID_LEN) {
-      fprintf(stderr, "erro: alguns valores de ID excedem o limite do sistema havera truncamento no arquivo final\n");
+    if (strlen(parser) >= MAX_ID_LEN) {
+      fprintf(stderr, "erro: o ID da linha %d \n%s\n\r excede o limite do sistema havera truncamento no arquivo final\n",lcount,line);
       continue;
     }
 
     parser = strtok(NULL, "\n");
-    if (!parser) continue;
+    if (!parser) {
+    fprintf(stderr, "a linha %d \n%s\n\r nao contem um valor valido\n ",lcount,line);
+    continue;
+    }
     char tempcharVal[MAX_VALUE_LEN];
     strncpy(tempcharVal, parser, MAX_VALUE_LEN - 1);
     tempcharVal[MAX_VALUE_LEN - 1] = '\0';
-    if (strlen(parser) > MAX_VALUE_LEN) {
-      fprintf(stderr, "erro: o valor de alguma linha excede o limite do sistema havera truncamento no arquivo final\n");
+    if (strlen(parser) >= MAX_VALUE_LEN) {
+      fprintf(stderr, "erro: o valor da linha %d \n%s\n excede o limite do sistema havera truncamento no arquivo final\n",lcount,line);
       continue;
     }
     
-    catching[count].timestamp=temptime;
-    strcpy(catching[count].sens_id,tempcharID);
-    strcpy(catching[count].value,tempcharVal);
-    add_unique_sensor(catching[count].sens_id, archive_names, arc_count, capacity);
+    readings[count].timestamp=temptime;
+    strcpy(readings[count].sens_id,tempcharID);
+    strcpy(readings[count].value,tempcharVal);
+    add_unique_sensor(readings[count].sens_id, archive_names, arc_count, capacity);
     count++;
   }
 
@@ -126,7 +139,7 @@ void add_unique_sensor(char *sensor_id, char ***unique_sensors, int *count, int 
     *unique_sensors = realloc(*unique_sensors, (*capacity) * sizeof(char *));
     if (!*unique_sensors) {
       perror("Erro ao realocar memoria para lista de sensores");
-      exit(1);
+      exit(EXIT_FAILURE);
     }
   }
   (*unique_sensors)[*count] = strdup(sensor_id);
